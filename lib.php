@@ -1,0 +1,136 @@
+<?php
+
+require_once(__DIR__ . '/../../config.php');
+
+function post_submission_dataAPI($event, $type='insert') {
+    global $DB;
+
+    // Get basic info
+    $context = $event->get_context(); // context_module
+    $courseid = $event->courseid;
+    $userid = $event->relateduserid;
+
+    // Get course module ID from context
+    $cmid = $context->instanceid;
+
+    // Get assign ID from course_modules
+    $cm = get_coursemodule_from_id('assign', $cmid, 0, false, MUST_EXIST);
+    $assignid = $cm->instance;
+    $assign = $DB->get_record('assign', ['id' => $assignid], 'Name, intro, grade');
+
+    $submission = $DB->get_record('assign_submission', [
+        'assignment' => $assignid,
+        'userid' => $userid
+    ]);
+    $submissionid = $submission->id;
+
+    // Get online text (if used)
+    $online_text = '';
+    if ($submission) {
+        $plugin_text = $DB->get_record('assignsubmission_onlinetext', ['submission' => $submissionid], 'onlinetext', IGNORE_MISSING);
+        if ($plugin_text) {
+            $online_text = $plugin_text->onlinetext;
+        }
+    }
+
+    // Get uploaded file IDs (if file submission is enabled)
+    $fs = get_file_storage();
+    $files = $fs->get_area_files(
+        $context->id,
+        'assignsubmission_file',
+        'submission_files',
+        $submissionid,
+        "itemid, filepath, filename",
+        false
+    );
+
+    $fileids = [];
+    foreach ($files as $file) {
+        $fileids[] = $file->get_id();
+    }
+    $fileIDs = implode(',', $fileids);
+
+
+    $file = $fs->get_file_by_id(112);
+    if ($file) {
+        $filecontent = $file->get_content();
+        // Pass $content to your external API
+    }
+
+    echo "<pre>";
+    print_r($fileIDs);
+    die;
+
+    // Get rubric data (if available)
+    $rubric_data = null;
+    if ($assignid) {
+        // Get the assignment's context and CM
+        $cm = get_coursemodule_from_instance('assign', $assignid, 0, false, MUST_EXIST);
+        $context = context_module::instance($cm->id);
+
+        // Use grading manager to access the rubric controller
+        $gradingmanager = get_grading_manager($context, 'mod_assign', 'submissions');
+        $controller = $gradingmanager->get_controller('rubric');
+
+        if ($controller && $controller->is_form_defined()) {
+            $rubric_data = $controller->get_definition();
+        }
+    }
+
+    $data = [
+        'submissionID' => $submissionid,
+        'assignmentID' => $assignid,
+        'assignmentName' => $assign->name,
+        'assignmentDesc' => $assign->intro,
+        'assignmentMaxScore' => $assign->grade,
+        'userAssignentText' => $online_text,
+        'userID' => $userid,
+        'courseID' => $courseid,
+        'fileIDs' => '',
+        'rubricID' => '',
+        'rubricData' => json_encode($rubric_data),
+        'indexingFlag' => false
+    ];
+
+    $response = execute_curl_API($data);
+    $responseresult = $response->gradeResponse;
+
+    $record = new stdClass();
+	$record->userid = $responseresult->userID;
+	$record->courseid = $responseresult->courseID;
+	$record->submissionid = $responseresult->submissionID;
+	$record->assignmentid = $responseresult->assignmentID;
+	$record->status = $responseresult->status;
+	$record->grade = $responseresult->grade;
+	$record->feedbackdesc = $responseresult->feedbackDesc;
+	$record->timemodified = time();
+	
+	$graderrow = $DB->get_record('assign_graderesponse', ['userid' => $record->userid, 'assignmentid' => $record->assignmentid, 'submissionid' => $record->submissionid], '*', IGNORE_MISSING);
+
+	if (empty($graderrow)) {
+		$record->timecreated = time();	
+		$DB->insert_record('assign_graderesponse', $record);
+	} elseif ($type == 'update') {
+		$record->id = $graderrow->id;
+		$DB->update_record('assign_graderesponse', $record);
+	}
+
+    return $response;
+}
+
+function execute_curl_API($data, $endpoint='https://genai-woodmontcollege-app.azurewebsites.net/api/StudentGrading/Grade') {
+    $headers = [
+        'x-api-key: 123456',
+        'Content-Type: application/json'
+    ];
+    $ch = curl_init($endpoint);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+
+    $response = json_decode(curl_exec($ch));
+    curl_close($ch);
+
+    return $response;
+}
