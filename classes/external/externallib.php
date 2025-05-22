@@ -21,7 +21,6 @@ class externallib extends external_api {
         ]);
     }
  
-
     public static function getfile($fileid) {
         global $USER;
 
@@ -171,4 +170,94 @@ class externallib extends external_api {
             )
         ]);
     }
+
+    public static function insert_graderesponse_parameters() {
+        return new external_function_parameters([
+            'data' => new external_value(PARAM_RAW, 'JSON encoded data containing userid, courseid, submissionid, assignmentid, status, grade, feedbackdesc')
+        ]);
+    }
+    
+    public static function insert_graderesponse($data) {
+        global $DB;
+    
+        // Decode JSON data
+        $decoded = json_decode($data, true);
+        if (!is_array($decoded)) {
+            throw new \moodle_exception('Invalid JSON data');
+        }
+    
+        // Define parameter structure
+        $expectedparams = [
+            'userid' => new external_value(PARAM_INT, 'User ID'),
+            'courseid' => new external_value(PARAM_INT, 'Course ID'),
+            'submissionid' => new external_value(PARAM_INT, 'Submission ID'),
+            'assignmentid' => new external_value(PARAM_INT, 'Assignment ID'),
+            'status' => new external_value(PARAM_INT, 'Status (0 = not graded, 1 = graded)', VALUE_OPTIONAL),
+            'grade' => new external_value(PARAM_TEXT, 'Grade'),
+            'feedbackdesc' => new external_value(PARAM_TEXT, 'Feedback description')
+        ];
+    
+        // Validate parameters
+        $params = self::validate_parameters(new external_function_parameters($expectedparams), $decoded);
+    
+        // Default status if not provided
+        $status = isset($params['status']) ? $params['status'] : 0;
+    
+        // Validate grade as integer
+        if (!ctype_digit($params['grade'])) {
+            throw new \moodle_exception('Grade must be an integer.');
+        }
+    
+        // Optionally ensure user is logged in to course
+        require_login($params['courseid']);
+    
+        // Find cmid
+        $cmid = 0;
+        $modinfo = get_fast_modinfo($params['courseid']);
+        foreach ($modinfo->cms as $cm) {
+            if ($cm->modname === 'assign' && $cm->instance == $params['assignmentid']) {
+                $cmid = $cm->id;
+                break;
+            }
+        }
+    
+        if (!$cmid) {
+            throw new \moodle_exception('Assignment module not found in course.');
+        }
+    
+        // Prepare data
+        $record = [
+            'userid' => $params['userid'],
+            'courseid' => $params['courseid'],
+            'submissionid' => $params['submissionid'],
+            'assignmentid' => $params['assignmentid'],
+            'cmid' => $cmid,
+            'status' => $status,
+            'grade' => $params['grade'],
+            'feedbackdesc' => $params['feedbackdesc'],
+            'timemodified' => time()
+        ];
+    
+        $existing = $DB->get_record('assign_graderesponse', ['submissionid' => $params['submissionid']]);
+    
+        if ($existing) {
+            $record['id'] = $existing->id;
+            $DB->update_record('assign_graderesponse', (object)$record);
+            $message = 'Graderesponse updated successfully.';
+        } else {
+            $record['timecreated'] = time();
+            $DB->insert_record('assign_graderesponse', (object)$record);
+            $message = 'Graderesponse inserted successfully.';
+        }
+    
+        return ['status' => 'success', 'message' => $message];
+    }
+    
+    public static function insert_graderesponse_returns() {
+        return new external_single_structure([
+            'status' => new external_value(PARAM_TEXT, 'Result status'),
+            'message' => new external_value(PARAM_TEXT, 'Result message'),
+        ]);
+    }
+      
 }

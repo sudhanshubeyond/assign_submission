@@ -22,6 +22,6 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2025050500;
+$plugin->version   = 2025050501;
 $plugin->requires  = 2016052300;
 $plugin->component = 'local_assign_submission';
