@@ -27,15 +27,15 @@ require_once($CFG->dirroot . '/grade/grading/form/rubric/lib.php');
 require_once($CFG->dirroot . '/local/assign_submission/lib.php');
 
 function submission_created(\mod_assign\event\submission_created $event) {
-    $response = post_submission_dataAPI($event, 'insert');
+    $response = submission_event_data($event, 'insert');
 }
 
 function submission_updated(\mod_assign\event\submission_updated $event) {
-    $response = post_submission_dataAPI($event, 'update');
+    $response = submission_event_data($event, 'update');
 }
 
 function submission_removed(\mod_assign\event\submission_removed $event) {
-    $response = post_submission_dataAPI($event, 'delete');
+    $response = submission_event_data($event, 'delete');
 }
 
 //end
