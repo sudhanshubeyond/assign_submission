@@ -171,93 +171,99 @@ class externallib extends external_api {
         ]);
     }
 
+    // No parameters expected, because you'll read raw JSON from php://input
     public static function insert_graderesponse_parameters() {
-        return new external_function_parameters([
-            'data' => new external_value(PARAM_RAW, 'JSON encoded data containing userid, courseid, submissionid, assignmentid, status, grade, feedbackdesc')
-        ]);
+        return new external_function_parameters([]);
     }
-    
-    public static function insert_graderesponse($data) {
+
+    public static function insert_graderesponse() {
         global $DB;
-    
-        // Decode JSON data
-        $decoded = json_decode($data, true);
-        if (!is_array($decoded)) {
+
+        // Get raw POST data
+        $rawdata = file_get_contents('php://input');
+        if (!$rawdata) {
+            throw new \moodle_exception('No input data received');
+        }
+
+        // Decode JSON
+        $data = json_decode($rawdata, true);
+        if ($data === null) {
             throw new \moodle_exception('Invalid JSON data');
         }
-    
-        // Define parameter structure
+
+        // Define expected parameters for validation
         $expectedparams = [
             'userid' => new external_value(PARAM_INT, 'User ID'),
             'courseid' => new external_value(PARAM_INT, 'Course ID'),
             'submissionid' => new external_value(PARAM_INT, 'Submission ID'),
             'assignmentid' => new external_value(PARAM_INT, 'Assignment ID'),
-            'status' => new external_value(PARAM_INT, 'Status (0 = not graded, 1 = graded)', VALUE_OPTIONAL),
-            'grade' => new external_value(PARAM_TEXT, 'Grade'),
-            'feedbackdesc' => new external_value(PARAM_TEXT, 'Feedback description')
+            'status' => new external_value(PARAM_INT, 'Status (0 = not graded, 1 = graded)'),
+            'grade' => new external_value(PARAM_INT, 'Grade'),
+            'feedbackdesc' => new external_value(PARAM_TEXT, 'Feedback description'),
         ];
-    
-        // Validate parameters
-        $params = self::validate_parameters(new external_function_parameters($expectedparams), $decoded);
-    
-        // Default status if not provided
-        $status = isset($params['status']) ? $params['status'] : 0;
-    
-        // Validate grade as integer
-        if (!ctype_digit($params['grade'])) {
-            throw new \moodle_exception('Grade must be an integer.');
-        }
-    
-        // Optionally ensure user is logged in to course
-        require_login($params['courseid']);
-    
-        // Find cmid
-        $cmid = 0;
+
+        // Validate decoded JSON data
+        $params = self::validate_parameters(new external_function_parameters($expectedparams), $data);
+
+        // Get course module id for the assignment
         $modinfo = get_fast_modinfo($params['courseid']);
+        $cmid = 0;
         foreach ($modinfo->cms as $cm) {
             if ($cm->modname === 'assign' && $cm->instance == $params['assignmentid']) {
                 $cmid = $cm->id;
                 break;
             }
         }
-    
-        if (!$cmid) {
-            throw new \moodle_exception('Assignment module not found in course.');
+
+        // Extra validation for grade as integer
+        if (!is_numeric($params['grade']) || intval($params['grade']) != $params['grade']) {
+            throw new \moodle_exception('Grade must be an integer.');
         }
-    
-        // Prepare data
-        $record = [
-            'userid' => $params['userid'],
-            'courseid' => $params['courseid'],
-            'submissionid' => $params['submissionid'],
-            'assignmentid' => $params['assignmentid'],
-            'cmid' => $cmid,
-            'status' => $status,
-            'grade' => $params['grade'],
-            'feedbackdesc' => $params['feedbackdesc'],
-            'timemodified' => time()
-        ];
-    
+
+        if (!$cmid) {
+            throw new \moodle_exception('Course module ID not found for the given assignment');
+        }
+
+        // Validate context and capability
+        $context = context_module::instance($cmid);
+        self::validate_context($context);
+
+        $record = new \stdClass();
+        $record->userid = $params['userid'];
+        $record->courseid = $params['courseid'];
+        $record->submissionid = $params['submissionid'];
+        $record->assignmentid = $params['assignmentid'];
+        $record->cmid = $cmid;
+        $record->status = $params['status'];
+        $record->grade = $params['grade'];
+        $record->feedbackdesc = $params['feedbackdesc'];
+        $record->timemodified = time();
+
+        $transaction = $DB->start_delegated_transaction();
+
         $existing = $DB->get_record('assign_graderesponse', ['submissionid' => $params['submissionid']]);
-    
+
         if ($existing) {
-            $record['id'] = $existing->id;
-            $DB->update_record('assign_graderesponse', (object)$record);
+            $record->id = $existing->id;
+            $DB->update_record('assign_graderesponse', $record);
             $message = 'Graderesponse updated successfully.';
         } else {
-            $record['timecreated'] = time();
-            $DB->insert_record('assign_graderesponse', (object)$record);
+            $record->timecreated = time();
+            $record->id = $DB->insert_record('assign_graderesponse', $record);
             $message = 'Graderesponse inserted successfully.';
         }
-    
-        return ['status' => 'success', 'message' => $message];
+
+        $transaction->allow_commit();
+
+        return ['status' => 'success', 'message' => $message, 'graderesponseid' => $record->id];
     }
-    
+
     public static function insert_graderesponse_returns() {
         return new external_single_structure([
             'status' => new external_value(PARAM_TEXT, 'Result status'),
             'message' => new external_value(PARAM_TEXT, 'Result message'),
+            'graderesponseid' => new external_value(PARAM_INT, 'Record ID'),
         ]);
     }
-      
+       
 }
