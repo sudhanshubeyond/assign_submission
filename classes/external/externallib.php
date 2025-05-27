@@ -133,7 +133,7 @@ class externallib extends external_api {
                     $sectiondata['modules'][] = [
                         'moduletype' => $cm->modname,
                         'modulename' => $cm->name,
-                        'moudlesecription' => isset($cm->content) ? strip_tags($cm->content) : '',
+                        'moduledescription' => isset($cm->content) ? strip_tags($cm->content) : '',
                         'fileid' => implode(',', $fileids),
                         'filename' => implode(',', $filenames),
                         'externalurl' => $externalurl
@@ -160,7 +160,7 @@ class externallib extends external_api {
                         new external_single_structure([
                             'moduletype' => new external_value(PARAM_TEXT, 'Module type'),
                             'modulename' => new external_value(PARAM_TEXT, 'Module name'),
-                            'moudlesecription' => new external_value(PARAM_RAW, 'Module description'),
+                            'moduledescription' => new external_value(PARAM_RAW, 'Module description'),
                             'fileid' => new external_value(PARAM_TEXT, 'Comma-separated file IDs'),
                             'filename' => new external_value(PARAM_TEXT, 'Comma-separated filenames'),
                             'externalurl' => new external_value(PARAM_URL, 'External URL if module is of type URL', VALUE_OPTIONAL),
@@ -198,7 +198,7 @@ class externallib extends external_api {
             'submissionid' => new external_value(PARAM_INT, 'Submission ID'),
             'assignmentid' => new external_value(PARAM_INT, 'Assignment ID'),
             'status' => new external_value(PARAM_INT, 'Status (0 = not graded, 1 = graded)'),
-            'grade' => new external_value(PARAM_INT, 'Grade'),
+            'grade' => new external_value(PARAM_RAW, 'Grade'),
             'feedbackdesc' => new external_value(PARAM_TEXT, 'Feedback description'),
         ];
 
@@ -215,9 +215,9 @@ class externallib extends external_api {
             }
         }
 
-        // Extra validation for grade as integer
-        if (!is_numeric($params['grade']) || intval($params['grade']) != $params['grade']) {
-            throw new \moodle_exception('Grade must be an integer.');
+        // Validation for grade as integer
+        if (!isset($params['grade']) || !is_numeric($params['grade']) || intval($params['grade']) != $params['grade']) {
+            throw new \moodle_exception('The grade must be an integer value.');
         }
 
         if (!$cmid) {
