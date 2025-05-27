@@ -97,10 +97,10 @@ function submission_event_data($event, $type='insert') {
         $response = execute_curl_postapi($data);
 
     } else {
-        $data = http_build_query([
-            'submissionId' => 1,
-            'userID' => 1
-        ]);
+        $data = [
+            'submissionId' => $submissionid,
+            'userID' => $userid
+        ];
         $response = execute_curl_deleteapi($data);
         $record = new stdClass();
     }
@@ -150,9 +150,11 @@ function execute_curl_postapi($data, $endpoint= '') {
 function execute_curl_deleteapi($data, $endpoint= '') {
     
     // $base_url = 'https://genai-woodmontcollege-app.azurewebsites.net/api/StudentGrading/DeleteGradingRequest';
-    // $endpoint = $base_url.'?'.$data;
+    // $endpoint = "'".$base_url.'?'.$data."'";
 
-    $endpoint = 'https://genai-woodmontcollege-app.azurewebsites.net/api/StudentGrading/DeleteGradingRequest?submissionId=1&userID=1';
+    $userID = $data['userID'];
+    $submissionId = $data['submissionId'];
+    $endpoint = 'https://genai-woodmontcollege-app.azurewebsites.net/api/StudentGrading/DeleteGradingRequest?submissionId='.$submissionId.'&userID='.$userID;
 
     $headers = [
         'x-api-key: 123456',
