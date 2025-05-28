@@ -2,13 +2,13 @@
 
 require_once(__DIR__ . '/../../config.php');
 
-function submission_event_data($event, $type='insert') {
+function submission_event_data($event, $type='submitted') {
     global $DB;
 
     // Get basic info
     $context = $event->get_context(); // context_module
     $courseid = $event->courseid;
-    $userid = $event->relateduserid;
+    $userid = $event->userid;
 
     // Get course module ID from context
     $cmid = $context->instanceid;
@@ -24,8 +24,7 @@ function submission_event_data($event, $type='insert') {
     ]);
     $submissionid = $submission->id;
 
-    if ($type == 'insert' || $type == 'update') {
-
+    if ($type == 'submitted') {
         // Get online text (if used)
         $online_text = '';
         if ($submission) {
@@ -50,6 +49,7 @@ function submission_event_data($event, $type='insert') {
         foreach ($files as $file) {
             $fileids[] = $file->get_id();
         }
+
         $fileIDs = implode(',', $fileids);
 
         // Get rubric data (if available)
@@ -84,6 +84,7 @@ function submission_event_data($event, $type='insert') {
         ];
 
         $endpoint = 'https://genai-woodmontcollege-app.azurewebsites.net/api/StudentGrading/SubmitAssignmentAsync';
+        $response = execute_curl_postapi($data, $endpoint);
 
         $record = new stdClass();
         $record->userid = $userid;
@@ -93,42 +94,38 @@ function submission_event_data($event, $type='insert') {
         $record->grade = $assign->grade;
         $record->cmid = $cmid;
         $record->feedbackdesc = '';
-        $record->timemodified = time();
-        $response = execute_curl_postapi($data);
+        $record->status = $response->status;
+        $record->timemodified = $timecreated = time();
+        $graderrow = $DB->get_record('assign_graderesponse', ['userid' => $userid, 'assignmentid' => $assignid, 'submissionid' => $submissionid], '*', IGNORE_MISSING);
 
+        if (empty($graderrow)) {
+            $record->timecreated = $timecreated;  
+            $DB->insert_record('assign_graderesponse', $record);
+        } else {
+            $record->id = $graderrow->id;
+            $record->isdeleted = 0;
+            $DB->update_record('assign_graderesponse', $record);
+        }
     } else {
+
         $data = [
             'submissionId' => $submissionid,
             'userID' => $userid
         ];
         $response = execute_curl_deleteapi($data);
-        $record = new stdClass();
+        $graderrow = $DB->get_record('assign_graderesponse', ['userid' => $userid, 'assignmentid' => $assignid, 'submissionid' => $submissionid], '*', IGNORE_MISSING);
+        if (!empty($graderrow)) {
+            $record = new stdClass();
+            $record->id = $graderrow->id;
+            $record->isdeleted = 1;
+            $record->timemodified = time();
+            $record->status = ($response->status) ? 1 : 0;
+            $DB->update_record('assign_graderesponse', $record);
+        }
     }
-
-    $record->timemodified = time();
-    $record->status = $response->status;
-	
-	$graderrow = $DB->get_record('assign_graderesponse', ['userid' => $userid, 'assignmentid' => $assignid, 'submissionid' => $submissionid], '*', IGNORE_MISSING);
-
-	if (empty($graderrow)) {
-		$record->timecreated = time();	
-		$DB->insert_record('assign_graderesponse', $record);
-	} elseif ($type == 'update') {
-		$record->id = $graderrow->id;
-        $record->isdeleted = 0;
-		$DB->update_record('assign_graderesponse', $record);
-	} else {
-        $record->id = $graderrow->id;
-        $record->isdeleted = 1;
-        //$record->status = 1;
-        $DB->update_record('assign_graderesponse', $record);
-    }
-
-    return $response;
 }
 
 function execute_curl_postapi($data, $endpoint= '') {
-
     $endpoint = 'https://genai-woodmontcollege-app.azurewebsites.net/api/StudentGrading/SubmitAssignmentAsync';
 
     $headers = [

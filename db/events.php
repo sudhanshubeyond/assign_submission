@@ -23,19 +23,13 @@
 defined('MOODLE_INTERNAL') || die();
 
 $observers = array(
-    array(
-       'eventname' => '\mod_assign\event\submission_created',
+   array(
+       'eventname' => '\mod_assign\event\assessable_submitted',
        'includefile' => '/local/assign_submission/locallib.php',
-       'callback' => 'submission_created',
+       'callback' => 'assessable_submitted',
        'internal' => false,
    ), 
-    array(
-       'eventname' => '\mod_assign\event\submission_updated',
-       'includefile' => '/local/assign_submission/locallib.php',
-       'callback' => 'submission_updated',
-       'internal' => false,
-   ), 
-    array(
+   array(
        'eventname' => '\mod_assign\event\submission_removed',
        'includefile' => '/local/assign_submission/locallib.php',
        'callback' => 'submission_removed',
