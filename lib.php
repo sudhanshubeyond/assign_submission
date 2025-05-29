@@ -26,6 +26,7 @@ function submission_event_data($event, $type='submitted') {
         $submissionid = $submission->id;
 
         if ($type == 'submitted') {
+
             // Get online text (if used)
             $online_text = '';
             if ($submission) {
@@ -53,19 +54,24 @@ function submission_event_data($event, $type='submitted') {
 
             $fileIDs = implode(',', $fileids);
 
-            // Get rubric data (if available)
-            $rubric_data = null;
+            // Get rubric/guide data (if available)
+            $gradingdata = '';
+            $gradingmethod = '';
             if ($assignid) {
                 // Get the assignment's context and CM
                 $cm = get_coursemodule_from_instance('assign', $assignid, 0, false, MUST_EXIST);
                 $context = context_module::instance($cm->id);
 
-                // Use grading manager to access the rubric controller
+                // Use grading manager to access the rubric/guide controller
                 $gradingmanager = get_grading_manager($context, 'mod_assign', 'submissions');
-                $controller = $gradingmanager->get_controller('rubric');
-
-                if ($controller && $controller->is_form_defined()) {
-                    $rubric_data = $controller->get_definition();
+                $gradingmethod  = $gradingmanager->get_active_method();
+                if ($gradingmanager->get_active_method()) {
+                    $controller = $gradingmanager->get_controller($gradingmethod);
+                    if ($controller && $controller->is_form_defined()) {
+                        $gradingdata = $controller->get_definition();
+                    }
+                } else {
+                    $gradingmethod = '';
                 }
             }
 
@@ -80,7 +86,8 @@ function submission_event_data($event, $type='submitted') {
                 'courseID' => $courseid,
                 'fileIDs' => $fileIDs,
                 'rubricID' => '',
-                'rubricData' => json_encode($rubric_data),
+                'GradingType' => $gradingmethod,
+                'GradingData' => ($gradingdata) ? json_encode($gradingdata) : '',
                 'indexingFlag' => false
             ];
 
@@ -95,7 +102,7 @@ function submission_event_data($event, $type='submitted') {
             $record->grade = $assign->grade;
             $record->cmid = $cmid;
             $record->feedbackdesc = '';
-            $record->status = $response->status;
+            $record->status = ($response->status) ? 1 : 0;;
             $record->timemodified = $timecreated = time();
             $graderrow = $DB->get_record('assign_graderesponse', ['userid' => $userid, 'assignmentid' => $assignid, 'submissionid' => $submissionid], '*', IGNORE_MISSING);
 
