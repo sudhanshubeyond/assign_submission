@@ -198,3 +198,16 @@ function get_course_custom_field_value($courseid, $fieldshortname) {
     }
     return null; // Return null if field not found
 }
+
+function show_ai_grading($cmid, $userid) {
+    global $DB;
+    $data = $DB->get_record('assign_graderesponse', array('userid' => $userid, 'cmid' => $cmid));
+
+    if (!empty($data)) {
+        $status = true;
+    } else {
+        $status = false;
+    }
+    
+    return $status;
+}
