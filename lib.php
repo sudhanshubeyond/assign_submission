@@ -104,10 +104,10 @@ function submission_event_data($event, $type='submitted') {
                 $record->courseid = $courseid;
                 $record->submissionid = $submissionid;
                 $record->assignmentid = $assignid;
-                $record->grade = $assign->grade;
+                $record->grade = " ";
                 $record->cmid = $cmid;
                 $record->feedbackdesc = '';
-                $record->status = ($response->status) ? 1 : 0;;
+                $record->status = ($response->status) ? 1 : 0;
                 $record->timemodified = $timecreated = time();
                 $graderrow = $DB->get_record('assign_graderesponse', ['userid' => $userid, 'assignmentid' => $assignid, 'submissionid' => $submissionid], '*', IGNORE_MISSING);
 
