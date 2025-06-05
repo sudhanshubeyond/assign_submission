@@ -199,8 +199,16 @@ class externallib extends external_api {
             'assignmentid' => new external_value(PARAM_INT, 'Assignment ID'),
             'status' => new external_value(PARAM_INT, 'Status (0 = not graded, 1 = graded)'),
             'grade' => new external_value(PARAM_RAW, 'Grade'),
-            'feedbackdesc' => new external_value(PARAM_TEXT, 'Feedback description'),
-            'rubricbreakdown' => new external_value(PARAM_TEXT, 'Rubric Breakdown'),
+            'feedbackdesc' => new external_value(PARAM_RAW, 'Feedback description'),
+             'rubricbreakdown' => new external_multiple_structure(
+    new external_single_structure([
+        'criterionid' => new external_value(PARAM_INT, 'Criterion ID'),
+        'selectedlevelid' => new external_value(PARAM_INT, 'Selected level ID'),
+        'marksawarded' => new external_value(PARAM_INT, 'Marks awarded'),
+        'feedback' => new external_value(PARAM_TEXT, 'Feedback')
+    ]),
+    'Rubric Breakdown'
+),
         ];
 
         // Validate decoded JSON data
@@ -238,7 +246,7 @@ class externallib extends external_api {
         $record->status = $params['status'];
         $record->grade = $params['grade'];
         $record->feedbackdesc = $params['feedbackdesc'];
-        $record->rubricbreakdown = $params['rubricbreakdown'];
+        $record->rubricbreakdown =json_encode($params['rubricbreakdown']);
         $record->timemodified = time();
 
         $transaction = $DB->start_delegated_transaction();
