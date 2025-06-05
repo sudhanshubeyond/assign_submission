@@ -14,7 +14,7 @@ $data = $DB->get_record('assign_graderesponse', array('userid' => $userid, 'cmid
 if(!empty($data)){
 switch ($action) {
 case 'getgrades':
-$response = ['status' => 200, 'grade' => $data->grade, 'feedback' => $data->feedbackdesc];
+$response = ['status' => 200, 'grade' => $data->grade, 'feedback' => $data->feedbackdesc,'rubricbreakdown' => $data->rubricbreakdown];
 break;
 default:
 $response = ['status' => 'error', 'message' => 'Invalid action'];

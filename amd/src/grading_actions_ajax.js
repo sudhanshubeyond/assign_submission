@@ -14,13 +14,11 @@ define([
             // Add a click handler to the button
             var cmid = getURLParameter("id", url);
             var userid = getURLParameter("userid", url);
-            
+
             $(document).on(
                     "click",
                     "#id_fill_ai_grade",
                     delay(function (e) {
-                        console.log(cmid);
-                        console.log(userid);
 
 
                         var programid = $(this).attr("data-programid");
@@ -39,6 +37,30 @@ define([
                             success: function (data) {
                                 try {
                                     if (data.status == 200) {
+                                        
+                                        const rubricdata = JSON.parse(data.rubricbreakdown);
+
+                                        rubricdata.forEach(item => {
+                                            const elementID = `advancedgrading-criteria-${item.criterionid}-levels-${item.selectedlevelid}`;
+                                            const feedbckelement = `advancedgrading-criteria-${item.criterionid}-remark`;
+
+                                            const levelElement = document.getElementById(elementID);
+                                            const remarkTextarea = document.getElementById(feedbckelement);
+
+                                            if (remarkTextarea) {
+                                                remarkTextarea.value = item.feedback;
+                                                remarkTextarea.style.display = 'block'; // optional: show if hidden
+                                            } else {
+                                                console.warn(`Textarea not found for criterion ${item.criterionid}`);
+                                            }
+
+                                            if (levelElement) {
+                                                levelElement.click();
+                                            } else {
+                                                console.warn(`Element with ID '${elementID}' not found.`);
+                                            }
+                                        });
+
                                         $("#id_assignfeedbackcomments_editoreditable").html(data.feedback);
                                         $("#id_grade").val(data.grade);
                                     }
@@ -54,6 +76,7 @@ define([
                     }, 100)
                     );
         },
+
     };
 
     function getURLParameter(name, url) {

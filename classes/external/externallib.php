@@ -200,15 +200,15 @@ class externallib extends external_api {
             'status' => new external_value(PARAM_INT, 'Status (0 = not graded, 1 = graded)'),
             'grade' => new external_value(PARAM_RAW, 'Grade'),
             'feedbackdesc' => new external_value(PARAM_RAW, 'Feedback description'),
-             'rubricbreakdown' => new external_multiple_structure(
-    new external_single_structure([
-        'criterionid' => new external_value(PARAM_INT, 'Criterion ID'),
-        'selectedlevelid' => new external_value(PARAM_INT, 'Selected level ID'),
-        'marksawarded' => new external_value(PARAM_INT, 'Marks awarded'),
-        'feedback' => new external_value(PARAM_TEXT, 'Feedback')
-    ]),
-    'Rubric Breakdown'
-),
+            'rubricbreakdown' => new external_multiple_structure(
+                    new external_single_structure([
+                        'criterionid' => new external_value(PARAM_INT, 'Criterion ID'),
+                        'selectedlevelid' => new external_value(PARAM_INT, 'Selected level ID'),
+                        'marksawarded' => new external_value(PARAM_INT, 'Marks awarded'),
+                        'feedback' => new external_value(PARAM_TEXT, 'Feedback')
+                            ]),
+                    'Rubric Breakdown'
+            ),
         ];
 
         // Validate decoded JSON data
