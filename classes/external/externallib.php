@@ -131,6 +131,7 @@ class externallib extends external_api {
                     }
 
                     $sectiondata['modules'][] = [
+                        'moduleid' => $cm->id,
                         'moduletype' => $cm->modname,
                         'modulename' => $cm->name,
                         'moduledescription' => isset($cm->content) ? strip_tags($cm->content) : '',
