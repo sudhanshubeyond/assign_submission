@@ -37,7 +37,7 @@ define([
                             success: function (data) {
                                 try {
                                     if (data.status == 200) {
-                                        
+
                                         const rubricdata = JSON.parse(data.rubricbreakdown);
 
                                         rubricdata.forEach(item => {
@@ -61,7 +61,13 @@ define([
                                             }
                                         });
 
-                                        $("#id_assignfeedbackcomments_editoreditable").html(data.feedback);
+                                        const editorDiv = document.getElementById('id_assignfeedbackcomments_editoreditable');
+                                        if (editorDiv) {
+                                            editorDiv.focus(); // Simulate focus
+                                            editorDiv.click(); // Optional
+                                            editorDiv.innerHTML = data.feedback;
+                                            editorDiv.dispatchEvent(new Event('input', {bubbles: true})); // Notify Atto of change
+                                        }
                                         $("#id_grade").val(data.grade);
                                     }
                                 } catch (err) {
