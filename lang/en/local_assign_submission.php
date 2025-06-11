@@ -23,3 +23,6 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['pluginname'] = 'Trigger custom events';
+$string['teacherapprovalsettings'] = 'Teacher approval';
+$string['teacherapprovalenabled'] = 'Enable teacher approval';
+$string['teacherapprovalenabled_help'] = 'If enabled, teachers must manually approve a submission before grading.';

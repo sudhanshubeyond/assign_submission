@@ -159,6 +159,7 @@ class externallib extends external_api {
                     'sectiondescription' => new external_value(PARAM_TEXT, 'Section description'),
                     'modules' => new external_multiple_structure(
                         new external_single_structure([
+                            'moduleid' => new external_value(PARAM_INT, 'Module type'),
                             'moduletype' => new external_value(PARAM_TEXT, 'Module type'),
                             'modulename' => new external_value(PARAM_TEXT, 'Module name'),
                             'moduledescription' => new external_value(PARAM_RAW, 'Module description'),
@@ -178,7 +179,7 @@ class externallib extends external_api {
     }
 
     public static function insert_graderesponse() {
-        global $DB;
+        global $DB, $CFG;
 
         // Get raw POST data
         $rawdata = file_get_contents('php://input');
@@ -202,13 +203,13 @@ class externallib extends external_api {
             'grade' => new external_value(PARAM_RAW, 'Grade'),
             'feedbackdesc' => new external_value(PARAM_RAW, 'Feedback description'),
             'rubricbreakdown' => new external_multiple_structure(
-                    new external_single_structure([
-                        'criterionid' => new external_value(PARAM_INT, 'Criterion ID'),
-                        'selectedlevelid' => new external_value(PARAM_INT, 'Selected level ID'),
-                        'marksawarded' => new external_value(PARAM_INT, 'Marks awarded'),
-                        'feedback' => new external_value(PARAM_TEXT, 'Feedback')
-                            ]),
-                    'Rubric Breakdown'
+                new external_single_structure([
+                    'criterionid' => new external_value(PARAM_INT, 'Criterion ID'),
+                    'selectedlevelid' => new external_value(PARAM_INT, 'Selected Level ID'),
+                    'marksawarded' => new external_value(PARAM_FLOAT, 'Marks Awarded'),
+                    'feedback' => new external_value(PARAM_TEXT, 'Criterion Feedback')
+                ]),
+                'Rubric Breakdown'
             ),
         ];
 
@@ -234,47 +235,139 @@ class externallib extends external_api {
             throw new \moodle_exception('Course module ID not found for the given assignment');
         }
 
+        require_once($CFG->dirroot . '/mod/assign/locallib.php');
+        
         // Validate context and capability
         $context = context_module::instance($cmid);
         self::validate_context($context);
+        require_capability('mod/assign:grade', $context);
 
-        $record = new \stdClass();
-        $record->userid = $params['userid'];
-        $record->courseid = $params['courseid'];
-        $record->submissionid = $params['submissionid'];
-        $record->assignmentid = $params['assignmentid'];
-        $record->cmid = $cmid;
-        $record->status = $params['status'];
-        $record->grade = $params['grade'];
-        $record->feedbackdesc = $params['feedbackdesc'];
-        $record->rubricbreakdown =json_encode($params['rubricbreakdown']);
-        $record->timemodified = time();
+        // Fetch assignment record
+        $assignment = $DB->get_record('assign', ['id' => $params['assignmentid']], 'id, teacher_approval', MUST_EXIST);
+        
+        $assign = new \assign($context, $cm, $cm->course);
 
+        $grade = $assign->get_user_grade($userid, true, -1);
+
+        $gradingdisabled = $assign->grading_disabled($params['userid']);       
+
+        $gradinginstance = \local_assign_submission\external\externallib::get_grading_instance($params['userid'], $grade, $gradingdisabled, $assign, $context);
+         
         $transaction = $DB->start_delegated_transaction();
 
-        $existing = $DB->get_record('assign_graderesponse', ['submissionid' => $params['submissionid']]);
+        if ((int)$assignment->teacher_approval === 0) {
+            $validateddata = new \stdClass();
+            $validateddata->advancedgrading = [];
+            $validateddata->advancedgrading['criteria'] = [];
 
-        if ($existing) {
-            $record->id = $existing->id;
-            $DB->update_record('assign_graderesponse', $record);
-            $message = 'Graderesponse updated successfully.';
+            foreach ($params['rubricbreakdown'] as $criterion) {
+                $validateddata->advancedgrading['criteria'][$criterion['criterionid']] = [
+                    'levelid' => $criterion['selectedlevelid'],
+                    'remark' => $criterion['feedback']
+                ];
+            }
+            $validateddata->advancedgradinginstanceid = $gradinginstance->get_id();
+            $validateddata->assignfeedbackcomments_editor = [
+                'text' => $params['feedbackdesc'],
+                'format' => 1,
+            ];
+
+            $validateddata->editpdf_source_userid = $params['userid'];
+            $validateddata->id = $cmid;
+            $validateddata->rownum = 0;
+            $validateddata->useridlistid = null;
+            $validateddata->attemptnumber = -1;
+            $validateddata->ajax = 0;
+            $validateddata->userid = $params['userid'];
+            $validateddata->sendstudentnotifications = 1;
+            $validateddata->action = 'submitgrade';
+
+            try {
+                $assign->save_grade($params['userid'], $validateddata);
+                $transaction->allow_commit();
+            } catch (Exception $e) {
+                $transaction->rollback($e->getMessage());
+                throw new \moodle_exception('Error saving grade: ' . $e->getMessage());
+            }
+
+            return [
+                'status' => true,
+                'message' => 'Grade saved and gradebook updated.',
+                'graderesponseid' => 0
+            ];
         } else {
-            $record->timecreated = time();
-            $record->id = $DB->insert_record('assign_graderesponse', $record);
-            $message = 'Graderesponse inserted successfully.';
+            // Insert or update graderesponse in DB if teacher approval is 1
+            $record = new \stdClass();
+            $record->userid = $params['userid'];
+            $record->courseid = $params['courseid'];
+            $record->submissionid = $params['submissionid'];
+            $record->assignmentid = $params['assignmentid'];
+            $record->cmid = $cmid;
+            $record->status = $params['status'];
+            $record->grade = $params['grade'];
+            $record->feedbackdesc = $params['feedbackdesc'];
+            $record->timemodified = time();
+            $record->rubricbreakdown = json_encode($params['rubricbreakdown']);
+
+            $existing = $DB->get_record('assign_graderesponse', ['submissionid' => $params['submissionid']]);
+
+            if ($existing) {
+                $record->id = $existing->id;
+                $DB->update_record('assign_graderesponse', $record);
+                $message = 'Graderesponse updated successfully.';
+            } else {
+                $record->timecreated = time();
+                $record->id = $DB->insert_record('assign_graderesponse', $record);
+                $message = 'Graderesponse inserted successfully.';
+            }
+
+            $transaction->allow_commit();
+
+            return ['status' => true, 'message' => $message, 'graderesponseid' => $record->id];
         }
-
-        $transaction->allow_commit();
-
-        return ['status' => 'success', 'message' => $message, 'graderesponseid' => $record->id];
     }
 
     public static function insert_graderesponse_returns() {
         return new external_single_structure([
-            'status' => new external_value(PARAM_TEXT, 'Result status'),
-            'message' => new external_value(PARAM_TEXT, 'Result message'),
+            'status' => new external_value(PARAM_BOOL, 'True if grading succeeded'),
+            'message' => new external_value(PARAM_TEXT, 'Result or warning message'),
             'graderesponseid' => new external_value(PARAM_INT, 'Record ID'),
         ]);
     }
-       
+    
+    public static function get_grading_instance($userid, $grade, $gradingdisabled, $assign, $context) {
+        global $CFG, $USER;
+
+        $grademenu = make_grades_menu($assign->get_instance($userid)->grade);
+
+        $allowgradedecimals = $assign->get_instance()->grade > 0;
+
+        $advancedgradingwarning = false;
+        $gradingmanager = get_grading_manager($context, 'mod_assign', 'submissions');
+        $gradinginstance = null;
+        if ($gradingmethod = $gradingmanager->get_active_method()) {
+            $controller = $gradingmanager->get_controller($gradingmethod);
+            if ($controller->is_form_available()) {
+                $itemid = null;
+                if ($grade) {
+                    $itemid = $grade->id;
+                }
+                if ($gradingdisabled && $itemid) {
+                    $gradinginstance = $controller->get_current_instance($USER->id, $itemid);
+                } else if (!$gradingdisabled) {
+                    $instanceid = optional_param('advancedgradinginstanceid', 0, PARAM_INT);
+                    $gradinginstance = $controller->get_or_create_instance($instanceid,
+                                                                           $USER->id,
+                                                                           $itemid);
+                }
+            } else {
+                $advancedgradingwarning = $controller->form_unavailable_notification();
+            }
+        }
+        if ($gradinginstance) {
+            $gradinginstance->get_controller()->set_grade_range($grademenu, $allowgradedecimals);
+        }
+        
+        return $gradinginstance;
+    }
 }
