@@ -211,7 +211,7 @@ class externallib extends external_api {
                 ]),
                 'Rubric Breakdown'
             ),
-            'errormessage' => new external_value(PARAM_RAW, 'Error Message'),
+            'errormessage' => new external_value(PARAM_RAW, 'Error Message', VALUE_OPTIONAL),
         ];
 
         // Validate decoded JSON data
@@ -307,7 +307,7 @@ class externallib extends external_api {
             $record->status = $params['status'];
             $record->grade = $params['grade'];
             $record->feedbackdesc = $params['feedbackdesc'];
-            $record->errormessage = $params['errormessage'];
+            $record->errormessage = isset($params['errormessage']) ? $params['errormessage'] : NULL;
             $record->timemodified = time();
             $record->rubricbreakdown = json_encode($params['rubricbreakdown']);
 
