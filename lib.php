@@ -145,7 +145,7 @@ function submission_event_data($event, $type = 'submitted') {
 function execute_curl_postapi($data, $endpoint = '') {
     $endpoint = 'https://genai-woodmontcollege-app.azurewebsites.net/api/StudentGrading/SubmitAssignmentAsync';
 
-    $headers = get_headers();
+    $headers = get_genapi_headers();
     
     $ch = curl_init($endpoint);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -166,7 +166,7 @@ function execute_curl_deleteapi($data, $endpoint = '') {
     $submissionId = $data['submissionId'];
     $endpoint = 'https://genai-woodmontcollege-app.azurewebsites.net/api/StudentGrading/DeleteGradingRequest?submissionId=' . $submissionId . '&userID=' . $userID;
 
-    $headers = get_headers();
+    $headers = get_genapi_headers();
 
     $ch = curl_init($endpoint);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "DELETE");

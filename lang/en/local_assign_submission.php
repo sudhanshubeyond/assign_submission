@@ -22,7 +22,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['pluginname'] = 'Trigger assignment submission';
+$string['pluginname'] = 'AI Grading';
 $string['teacherapprovalsettings'] = 'Teacher approval';
 $string['teacherapprovalenabled'] = 'Enable teacher approval';
 $string['teacherapprovalenabled_help'] = 'If enabled, teachers must manually approve a submission before grading.';
