@@ -11,16 +11,16 @@ $userid = required_param('userid', PARAM_INT);
 global $DB;
 $data = $DB->get_record('assign_graderesponse', array('userid' => $userid, 'cmid' => $cmid));
 
-if(!empty($data)){
-switch ($action) {
-case 'getgrades':
-$response = ['status' => 200, 'grade' => $data->grade, 'feedback' => $data->feedbackdesc,'rubricbreakdown' => $data->rubricbreakdown];
-break;
-default:
-$response = ['status' => 'error', 'message' => 'Invalid action'];
-break;
-}
-}else {
+if (!empty($data)) {
+    switch ($action) {
+        case 'getgrades':
+            $response = ['status' => 200, 'grade' => $data->grade, 'feedback' => $data->feedbackdesc, 'rubricbreakdown' => $data->rubricbreakdown,'errormessage' => $data->errormessage];
+            break;
+        default:
+            $response = ['status' => 'error', 'message' => 'Invalid action'];
+            break;
+    }
+} else {
     $response = ['status' => 404];
 }
 

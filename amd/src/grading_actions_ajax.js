@@ -37,38 +37,44 @@ define([
                             success: function (data) {
                                 try {
                                     if (data.status == 200) {
+                                        if (data.errormessage !== null) {
+                                            const message = 'There is some issue with following message "' +
+                                                    `<strong>${data.errormessage}</strong>` + '" kindly grade this manually';
+                                            notification.alert('Grading Issue', message, 'OK');
+                                        } else {
 
-                                        const rubricdata = JSON.parse(data.rubricbreakdown);
+                                            const rubricdata = JSON.parse(data.rubricbreakdown);
 
-                                        rubricdata.forEach(item => {
-                                            const elementID = `advancedgrading-criteria-${item.criterionid}-levels-${item.selectedlevelid}`;
-                                            const feedbckelement = `advancedgrading-criteria-${item.criterionid}-remark`;
+                                            rubricdata.forEach(item => {
+                                                const elementID = `advancedgrading-criteria-${item.criterionid}-levels-${item.selectedlevelid}`;
+                                                const feedbckelement = `advancedgrading-criteria-${item.criterionid}-remark`;
 
-                                            const levelElement = document.getElementById(elementID);
-                                            const remarkTextarea = document.getElementById(feedbckelement);
+                                                const levelElement = document.getElementById(elementID);
+                                                const remarkTextarea = document.getElementById(feedbckelement);
 
-                                            if (remarkTextarea) {
-                                                remarkTextarea.value = item.feedback;
-                                                remarkTextarea.style.display = 'block'; // optional: show if hidden
-                                            } else {
-                                                console.warn(`Textarea not found for criterion ${item.criterionid}`);
+                                                if (remarkTextarea) {
+                                                    remarkTextarea.value = item.feedback;
+                                                    remarkTextarea.style.display = 'block'; // optional: show if hidden
+                                                } else {
+                                                    console.warn(`Textarea not found for criterion ${item.criterionid}`);
+                                                }
+
+                                                if (levelElement) {
+                                                    levelElement.click();
+                                                } else {
+                                                    console.warn(`Element with ID '${elementID}' not found.`);
+                                                }
+                                            });
+
+                                            const editorDiv = document.getElementById('id_assignfeedbackcomments_editoreditable');
+                                            if (editorDiv) {
+                                                editorDiv.focus(); // Simulate focus
+                                                editorDiv.click(); // Optional
+                                                editorDiv.innerHTML = data.feedback;
+                                                editorDiv.dispatchEvent(new Event('input', {bubbles: true})); // Notify Atto of change
                                             }
-
-                                            if (levelElement) {
-                                                levelElement.click();
-                                            } else {
-                                                console.warn(`Element with ID '${elementID}' not found.`);
-                                            }
-                                        });
-
-                                        const editorDiv = document.getElementById('id_assignfeedbackcomments_editoreditable');
-                                        if (editorDiv) {
-                                            editorDiv.focus(); // Simulate focus
-                                            editorDiv.click(); // Optional
-                                            editorDiv.innerHTML = data.feedback;
-                                            editorDiv.dispatchEvent(new Event('input', {bubbles: true})); // Notify Atto of change
+                                            $("#id_grade").val(data.grade);
                                         }
-                                        $("#id_grade").val(data.grade);
                                     }
                                 } catch (err) {
                                     alert('There is some issue please try again later');
