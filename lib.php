@@ -3,7 +3,7 @@
 require_once(__DIR__ . '/../../config.php');
 use core_course\customfield\course_handler;
 
-function submission_event_data($event, $type='submitted') {
+function submission_event_data($event, $type = 'submitted') {
     global $DB;
 
     try {
@@ -14,7 +14,7 @@ function submission_event_data($event, $type='submitted') {
 
         $fieldshortname = 'ai_required'; // Replace with your field shortname
         $value = get_course_custom_field_value($courseid, $fieldshortname);
-        if ($value != '' && $value == 1) {
+        if ($value == 1) {
 
             // Get course module ID from context
             $cmid = $context->instanceid;
@@ -44,12 +44,12 @@ function submission_event_data($event, $type='submitted') {
                 // Get uploaded file IDs (if file submission is enabled)
                 $fs = get_file_storage();
                 $files = $fs->get_area_files(
-                    $context->id,
-                    'assignsubmission_file',
-                    'submission_files',
-                    $submissionid,
-                    "itemid, filepath, filename",
-                    false
+                        $context->id,
+                        'assignsubmission_file',
+                        'submission_files',
+                        $submissionid,
+                        "itemid, filepath, filename",
+                        false
                 );
 
                 $fileids = [];
@@ -69,7 +69,7 @@ function submission_event_data($event, $type='submitted') {
 
                     // Use grading manager to access the rubric/guide controller
                     $gradingmanager = get_grading_manager($context, 'mod_assign', 'submissions');
-                    $gradingmethod  = $gradingmanager->get_active_method();
+                    $gradingmethod = $gradingmanager->get_active_method();
                     if ($gradingmanager->get_active_method()) {
                         $controller = $gradingmanager->get_controller($gradingmethod);
                         if ($controller && $controller->is_form_defined()) {
@@ -96,7 +96,6 @@ function submission_event_data($event, $type='submitted') {
                     'indexingFlag' => false
                 ];
 
-                $endpoint = 'https://genai-woodmontcollege-app.azurewebsites.net/api/StudentGrading/SubmitAssignmentAsync';
                 $response = execute_curl_postapi($data, $endpoint);
 
                 $record = new stdClass();
@@ -112,7 +111,7 @@ function submission_event_data($event, $type='submitted') {
                 $graderrow = $DB->get_record('assign_graderesponse', ['userid' => $userid, 'assignmentid' => $assignid, 'submissionid' => $submissionid], '*', IGNORE_MISSING);
 
                 if (empty($graderrow)) {
-                    $record->timecreated = $timecreated;  
+                    $record->timecreated = $timecreated;
                     $DB->insert_record('assign_graderesponse', $record);
                 } else {
                     $record->id = $graderrow->id;
@@ -135,58 +134,50 @@ function submission_event_data($event, $type='submitted') {
                     $record->status = ($response->status) ? 1 : 0;
                     $DB->update_record('assign_graderesponse', $record);
                 }
-            } 
-        }  
+            }
+        }
     } catch (Exception $e) {
         // Catch unexpected exceptions
         debugging('Unexpected error: ' . $e->getMessage(), DEBUG_DEVELOPER);
     }
 }
 
-function execute_curl_postapi($data, $endpoint= '') {
+function execute_curl_postapi($data, $endpoint = '') {
     $endpoint = 'https://genai-woodmontcollege-app.azurewebsites.net/api/StudentGrading/SubmitAssignmentAsync';
 
-    $headers = [
-        'x-api-key: 123456',
-        'Content-Type: application/json'
-    ];
+    $headers = get_headers();
+    
     $ch = curl_init($endpoint);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-    
+
     $response = json_decode(curl_exec($ch));
     curl_close($ch);
 
     return $response;
 }
 
-function execute_curl_deleteapi($data, $endpoint= '') {
-    
-    // $base_url = 'https://genai-woodmontcollege-app.azurewebsites.net/api/StudentGrading/DeleteGradingRequest';
-    // $endpoint = "'".$base_url.'?'.$data."'";
+function execute_curl_deleteapi($data, $endpoint = '') {
+
 
     $userID = $data['userID'];
     $submissionId = $data['submissionId'];
-    $endpoint = 'https://genai-woodmontcollege-app.azurewebsites.net/api/StudentGrading/DeleteGradingRequest?submissionId='.$submissionId.'&userID='.$userID;
+    $endpoint = 'https://genai-woodmontcollege-app.azurewebsites.net/api/StudentGrading/DeleteGradingRequest?submissionId=' . $submissionId . '&userID=' . $userID;
 
-    $headers = [
-        'x-api-key: 123456',
-        'Content-Type: application/json'
-    ];
+    $headers = get_headers();
 
     $ch = curl_init($endpoint);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "DELETE");
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-    
+
     $response = json_decode(curl_exec($ch));
     curl_close($ch);
 
     return $response;
 }
-
 
 function get_course_custom_field_value($courseid, $fieldshortname) {
     $handler = course_handler::create();
@@ -208,6 +199,17 @@ function show_ai_grading($cmid, $userid) {
     } else {
         $status = false;
     }
-    
+
     return $status;
+}
+
+function get_genapi_headers() {
+
+    $apikey = get_config('local_assign_submission','api_keys');
+    $headers = [
+        "x-api-key: $apikey",
+        "Content-Type: application/json"
+    ];
+
+    return $headers;
 }

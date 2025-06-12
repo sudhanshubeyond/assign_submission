@@ -22,7 +22,10 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['pluginname'] = 'Trigger custom events';
+$string['pluginname'] = 'Trigger assignment submission';
 $string['teacherapprovalsettings'] = 'Teacher approval';
 $string['teacherapprovalenabled'] = 'Enable teacher approval';
 $string['teacherapprovalenabled_help'] = 'If enabled, teachers must manually approve a submission before grading.';
+$string['create_end_points'] = 'Create end points';
+$string['delete_end_points'] = 'Delete end points';
+$string['api_keys'] = 'API keys';
