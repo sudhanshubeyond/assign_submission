@@ -35,4 +35,86 @@ $observers = array(
        'callback' => 'submission_removed',
        'internal' => false,
    ), 
+    // Course lifecycle events.
+    array(
+        'eventname'   => '\core\event\course_created',
+        'includefile' => '/local/assign_submission/locallib.php',
+        'callback'    => 'local_assign_submission_handle_event',
+        'internal'    => false,
+    ),
+    array(
+        'eventname'   => '\core\event\course_updated',
+        'includefile' => '/local/assign_submission/locallib.php',
+        'callback'    => 'local_assign_submission_handle_event',
+        'internal'    => false,
+    ),
+    array(
+        'eventname'   => '\core\event\course_deleted',
+        'includefile' => '/local/assign_submission/locallib.php',
+        'callback'    => 'local_assign_submission_handle_event',
+        'internal'    => false,
+    ),
+    array(
+        'eventname'   => '\core\event\course_content_deleted',
+        'includefile' => '/local/assign_submission/locallib.php',
+        'callback'    => 'local_assign_submission_handle_event',
+        'internal'    => false,
+    ),
+    array(
+        'eventname'   => '\core\event\course_module_created',
+        'includefile' => '/local/assign_submission/locallib.php',
+        'callback'    => 'local_assign_submission_handle_event',
+        'internal'    => false,
+    ),
+    array(
+        'eventname'   => '\core\event\course_module_updated',
+        'includefile' => '/local/assign_submission/locallib.php',
+        'callback'    => 'local_assign_submission_handle_event',
+        'internal'    => false,
+    ),
+    array(
+        'eventname'   => '\core\event\course_module_deleted',
+        'includefile' => '/local/assign_submission/locallib.php',
+        'callback'    => 'local_assign_submission_handle_event',
+        'internal'    => false,
+    ),
+    // Section events.
+    array(
+        'eventname'   => '\core\event\course_section_created',
+        'includefile' => '/local/assign_submission/locallib.php',
+        'callback'    => 'local_assign_submission_handle_event',
+        'internal'    => false,
+    ),
+    array(
+        'eventname'   => '\core\event\course_section_updated',
+        'includefile' => '/local/assign_submission/locallib.php',
+        'callback'    => 'local_assign_submission_handle_event',
+        'internal'    => false,
+    ),
+    array(
+        'eventname'   => '\core\event\course_section_deleted',
+        'includefile' => '/local/assign_submission/locallib.php',
+        'callback'    => 'local_assign_submission_handle_event',
+        'internal'    => false,
+    ),
+    // Assignment events
+    array(
+        'eventname'   => '\mod_assign\event\assignment_created',
+        'includefile' => '/local/assign_submission/locallib.php',
+        'callback'    => 'local_assign_submission_handle_event',
+        'internal'    => false,
+    ),
+    array(
+        'eventname'   => '\mod_assign\event\assignment_updated',
+        'includefile' => '/local/assign_submission/locallib.php',
+        'callback'    => 'local_assign_submission_handle_event',
+        'internal'    => false,
+    ),
+    array(
+        'eventname'   => '\mod_assign\event\assignment_deleted',
+        'includefile' => '/local/assign_submission/locallib.php',
+        'callback'    => 'local_assign_submission_handle_event',
+        'internal'    => false,
+    ),
+
 );

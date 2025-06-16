@@ -34,5 +34,37 @@ function submission_removed(\mod_assign\event\submission_removed $event) {
     $response = submission_event_data($event, 'delete');
 }
 
+function local_assign_submission_handle_event(\core\event\base $event) {
+    try {
+        $courseid = $event->courseid ?? 0;
+
+        if (!$courseid) {
+            debugging("No course ID found in event: {$event->eventname}", DEBUG_DEVELOPER);
+            return;
+        }
+
+        $response = execute_curl_putapi($courseid);
+
+        if (isset($response->status) && $response->status === true) {
+            debugging("Successfully updated sync status for courseId: {$courseid}", DEBUG_DEVELOPER);
+            write_to_log("Successfully updated sync status for courseId: {$courseid}");
+        } else {
+            debugging("Failed to update sync status for courseId: {$courseid}", DEBUG_DEVELOPER);
+             write_to_log("Failed to update sync status for courseId: {$courseid} (Response: " . json_encode($response) . ")");
+        }
+
+    } catch (Exception $e) {
+        debugging("Error in event {$event->eventname}: " . $e->getMessage(), DEBUG_DEVELOPER);
+        write_to_log("Error in event {$event->eventname}: " . $e->getMessage());
+    }
+}
+
+function write_to_log($message) {
+    $logfile = '/var/www/html/moodledata/custom_event_log.txt';
+    file_put_contents($logfile, "[" . date("Y-m-d H:i:s") . "] " . $message . PHP_EOL, FILE_APPEND);
+}
+
+
+
 //end
 ?>

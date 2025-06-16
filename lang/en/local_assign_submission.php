@@ -28,4 +28,5 @@ $string['teacherapprovalenabled'] = 'Enable teacher approval';
 $string['teacherapprovalenabled_help'] = 'If enabled, teachers must manually approve a submission before grading.';
 $string['create_end_points'] = 'Create end points';
 $string['delete_end_points'] = 'Delete end points';
+$string['update_course_sync_end_point'] = 'Update sync end point';
 $string['api_keys'] = 'API keys';

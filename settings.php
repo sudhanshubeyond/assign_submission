@@ -46,7 +46,13 @@ if ($hassiteconfig) {
         get_string("delete_end_points", "local_assign_submission"),
         'https://genai-woodmontcollege-app.azurewebsites.net/api/StudentGrading/DeleteGradingRequest', PARAM_RAW);
     $settings->add($setting);
-    
+
+    $setting = new admin_setting_configtextarea(
+        "local_assign_submission/update_course_sync_end_point",
+        get_string("update_course_sync_end_point", "local_assign_submission"),
+        get_string("update_course_sync_end_point", "local_assign_submission"),
+        'https://genai-woodmontcollege-app.azurewebsites.net/api/StudentGrading/UpdateCourseSyncStatus', PARAM_RAW);
+    $settings->add($setting);    
     
     $setting = new admin_setting_configtext(
         "local_assign_submission/api_keys",

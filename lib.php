@@ -214,3 +214,36 @@ function get_genapi_headers() {
 
     return $headers;
 }
+
+function execute_curl_putapi($courseid) {
+    if (empty($courseid)) {
+        write_to_log("Error: courseId is empty.");
+        return null;
+    }
+
+    $params = ['courseId' => $courseid];
+    $endpoint  = get_config('local_assign_submission','update_course_sync_end_point');
+    $url = new moodle_url($endpoint, $params);
+
+    $headers = get_genapi_headers();
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    $responseRaw = curl_exec($ch);
+
+    if (curl_errno($ch)) {
+        debugging("cURL PUT error: " . curl_error($ch), DEBUG_DEVELOPER);
+    }
+
+    curl_close($ch);
+    $response = json_decode($responseRaw);
+
+    if (isset($response->errors)) {
+        write_to_log("API error response: " . json_encode($response));
+    } else {
+        write_to_log("API response success: " . json_encode($response));
+    }
+
+    return $response;
+}
