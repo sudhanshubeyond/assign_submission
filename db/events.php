@@ -97,24 +97,5 @@ $observers = array(
         'callback'    => 'local_assign_submission_handle_event',
         'internal'    => false,
     ),
-    // Assignment events
-    array(
-        'eventname'   => '\mod_assign\event\assignment_created',
-        'includefile' => '/local/assign_submission/locallib.php',
-        'callback'    => 'local_assign_submission_handle_event',
-        'internal'    => false,
-    ),
-    array(
-        'eventname'   => '\mod_assign\event\assignment_updated',
-        'includefile' => '/local/assign_submission/locallib.php',
-        'callback'    => 'local_assign_submission_handle_event',
-        'internal'    => false,
-    ),
-    array(
-        'eventname'   => '\mod_assign\event\assignment_deleted',
-        'includefile' => '/local/assign_submission/locallib.php',
-        'callback'    => 'local_assign_submission_handle_event',
-        'internal'    => false,
-    ),
 
 );
