@@ -53,7 +53,6 @@ function local_assign_submission_handle_event(\core\event\base $event) {
 
     } catch (Exception $e) {
         debugging("Error in event {$event->eventname}: " . $e->getMessage(), DEBUG_DEVELOPER);
-        write_to_log("Error in event {$event->eventname}: " . $e->getMessage());
     }
 }
 
