@@ -47,10 +47,8 @@ function local_assign_submission_handle_event(\core\event\base $event) {
 
         if (isset($response->status) && $response->status === true) {
             debugging("Successfully updated sync status for courseId: {$courseid}", DEBUG_DEVELOPER);
-            write_to_log("Successfully updated sync status for courseId: {$courseid}");
         } else {
-            debugging("Failed to update sync status for courseId: {$courseid}", DEBUG_DEVELOPER);
-             write_to_log("Failed to update sync status for courseId: {$courseid} (Response: " . json_encode($response) . ")");
+            debugging("Failed to update sync status for courseId: {$courseid}", DEBUG_DEVELOPER);      
         }
 
     } catch (Exception $e) {
@@ -58,13 +56,6 @@ function local_assign_submission_handle_event(\core\event\base $event) {
         write_to_log("Error in event {$event->eventname}: " . $e->getMessage());
     }
 }
-
-function write_to_log($message) {
-    $logfile = '/var/www/html/moodledata/custom_event_log.txt';
-    file_put_contents($logfile, "[" . date("Y-m-d H:i:s") . "] " . $message . PHP_EOL, FILE_APPEND);
-}
-
-
 
 //end
 ?>

@@ -217,12 +217,12 @@ function get_genapi_headers() {
 
 function execute_curl_putapi($courseid) {
     if (empty($courseid)) {
-        write_to_log("Error: courseId is empty.");
+        debugging("Error: courseId is empty.", DEBUG_DEVELOPER);
         return null;
     }
 
     $params = ['courseId' => $courseid];
-    $endpoint  = get_config('local_assign_submission','update_course_sync_end_point');
+    $endpoint  = get_config('local_assign_submission', 'update_course_sync_end_point');
     $url = new moodle_url($endpoint, $params);
 
     $headers = get_genapi_headers();
@@ -240,9 +240,9 @@ function execute_curl_putapi($courseid) {
     $response = json_decode($responseRaw);
 
     if (isset($response->errors)) {
-        write_to_log("API error response: " . json_encode($response));
+        debugging("API error response: " . json_encode($response), DEBUG_DEVELOPER);
     } else {
-        write_to_log("API response success: " . json_encode($response));
+        debugging("API response success: " . json_encode($response), DEBUG_DEVELOPER);
     }
 
     return $response;
