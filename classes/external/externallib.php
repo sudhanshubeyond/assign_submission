@@ -247,42 +247,65 @@ class externallib extends external_api {
         $assignment = $DB->get_record('assign', ['id' => $params['assignmentid']], 'id, teacher_approval', MUST_EXIST);
         
         $assign = new \assign($context, $cm, $cm->course);
-
-        $grade = $assign->get_user_grade($userid, true, -1);
-
-        $gradingdisabled = $assign->grading_disabled($params['userid']);       
-
-        $gradinginstance = \local_assign_submission\external\externallib::get_grading_instance($params['userid'], $grade, $gradingdisabled, $assign, $context);
          
         $transaction = $DB->start_delegated_transaction();
 
         if ((int)$assignment->teacher_approval === 0) {
+            // Initialize the validateddata object
             $validateddata = new \stdClass();
-            $validateddata->advancedgrading = [];
-            $validateddata->advancedgrading['criteria'] = [];
 
-            foreach ($params['rubricbreakdown'] as $criterion) {
-                $validateddata->advancedgrading['criteria'][$criterion['criterionid']] = [
-                    'levelid' => $criterion['selectedlevelid'],
-                    'remark' => $criterion['feedback']
+            // Check if rubricbreakdown is empty
+            if (empty($params['rubricbreakdown'])) {
+                // Assign grade and feedback comments
+                $validateddata->grade = $params['grade'];
+                $validateddata->assignfeedbackcomments_editor = [
+                    'text' => $params['feedbackdesc'],
+                    'format' => 1,
                 ];
+
+                $validateddata->editpdf_source_userid = $params['userid'];
+                $validateddata->id = $cmid;
+                $validateddata->rownum = 0;
+                $validateddata->useridlistid = null;
+                $validateddata->attemptnumber = -1;
+                $validateddata->ajax = 0;
+                $validateddata->userid = $params['userid'];
+                $validateddata->sendstudentnotifications = 1;
+                $validateddata->action = 'submitgrade';
+
+            } else {
+                $grade = $assign->get_user_grade($userid, true, -1);
+
+                $gradingdisabled = $assign->grading_disabled($params['userid']);       
+
+                $gradinginstance = self::get_grading_instance($params['userid'], $grade, $gradingdisabled, $assign, $context);
+                // If rubricbreakdown is not empty, create the detailed validateddata structure with rubric breakdown
+                $validateddata->advancedgrading = [];
+                $validateddata->advancedgrading['criteria'] = [];
+
+                foreach ($params['rubricbreakdown'] as $criterion) {
+                    $validateddata->advancedgrading['criteria'][$criterion['criterionid']] = [
+                        'levelid' => $criterion['selectedlevelid'],
+                        'remark' => $criterion['feedback']
+                    ];
+                }
+
+                $validateddata->advancedgradinginstanceid = $gradinginstance->get_id();
+                $validateddata->assignfeedbackcomments_editor = [
+                    'text' => $params['feedbackdesc'],
+                    'format' => 1,
+                ];
+
+                $validateddata->editpdf_source_userid = $params['userid'];
+                $validateddata->id = $cmid;
+                $validateddata->rownum = 0;
+                $validateddata->useridlistid = null;
+                $validateddata->attemptnumber = -1;
+                $validateddata->ajax = 0;
+                $validateddata->userid = $params['userid'];
+                $validateddata->sendstudentnotifications = 1;
+                $validateddata->action = 'submitgrade';
             }
-            $validateddata->advancedgradinginstanceid = $gradinginstance->get_id();
-            $validateddata->assignfeedbackcomments_editor = [
-                'text' => $params['feedbackdesc'],
-                'format' => 1,
-            ];
-
-            $validateddata->editpdf_source_userid = $params['userid'];
-            $validateddata->id = $cmid;
-            $validateddata->rownum = 0;
-            $validateddata->useridlistid = null;
-            $validateddata->attemptnumber = -1;
-            $validateddata->ajax = 0;
-            $validateddata->userid = $params['userid'];
-            $validateddata->sendstudentnotifications = 1;
-            $validateddata->action = 'submitgrade';
-
             try {
                 $assign->save_grade($params['userid'], $validateddata);
                 $transaction->allow_commit();
@@ -291,10 +314,7 @@ class externallib extends external_api {
                 throw new \moodle_exception('Error saving grade: ' . $e->getMessage());
             }
 
-            return [
-                'status' => true,
-                'message' => 'Grade saved and gradebook updated.',
-                'graderesponseid' => 0
+            return ['status' => true, 'message' => 'Grade saved and gradebook updated.', 'graderesponseid' => 0
             ];
         } else {
             // Insert or update graderesponse in DB if teacher approval is 1
