@@ -27,11 +27,29 @@ require_once($CFG->dirroot . '/grade/grading/form/rubric/lib.php');
 require_once($CFG->dirroot . '/local/assign_submission/lib.php');
 
 function assessable_submitted(\mod_assign\event\assessable_submitted $event) {
-    $response = submission_event_data($event, 'submitted');
+    global $DB;
+    
+    $assignmentid = $event->get_record_snapshot('assign_submission', $event->objectid)->assignment;
+    $assignment = $DB->get_record('assign', ['id' => $assignmentid], 'id, ai_grading', MUST_EXIST);
+
+    if ($assignment->ai_grading == 1) { 
+        $response = submission_event_data($event, 'submitted');
+    } else {
+        return;
+    }
 }
 
 function submission_removed(\mod_assign\event\submission_removed $event) {
-    $response = submission_event_data($event, 'delete');
+    global $DB;
+    
+    $assignmentid = $event->get_record_snapshot('assign_submission', $event->objectid)->assignment;
+    $assignment = $DB->get_record('assign', ['id' => $assignmentid], 'id, ai_grading', MUST_EXIST);
+
+    if ($assignment->ai_grading == 1) {
+        $response = submission_event_data($event, 'delete');
+    } else {
+        return;
+    }
 }
 
 function local_assign_submission_handle_event(\core\event\base $event) {
