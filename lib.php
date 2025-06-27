@@ -5,7 +5,6 @@ use core_course\customfield\course_handler;
 
 function submission_event_data($event, $type='submitted') {
     global $DB;
-
     try {
         // Get basic info
         $context = $event->get_context(); // context_module
@@ -24,13 +23,9 @@ function submission_event_data($event, $type='submitted') {
             $assignid = $cm->instance;
             $assign = $DB->get_record('assign', ['id' => $assignid], 'Name, intro, grade');
 
-            $submission = $DB->get_record('assign_submission', [
-                'assignment' => $assignid,
-                'userid' => $userid
-            ]);
-            $submissionid = $submission->id;
-
-            if ($type == 'submitted') {
+            $submissionid = $event->objectid;
+	    
+	    if ($type == 'submitted') {
 
                 // Get online text (if used)
                 $online_text = '';
@@ -51,7 +46,6 @@ function submission_event_data($event, $type='submitted') {
                     "itemid, filepath, filename",
                     false
                 );
-
                 $fileids = [];
                 foreach ($files as $file) {
                     $fileids[] = $file->get_id();
@@ -106,12 +100,23 @@ function submission_event_data($event, $type='submitted') {
                 $record->assignmentid = $assignid;
                 $record->grade = " ";
                 $record->cmid = $cmid;
-                $record->feedbackdesc = '';
+		$record->feedbackdesc = '';
+		$record->fileids = $fileIDs;
                 $record->status = ($response->status) ? 1 : 0;
                 $record->timemodified = $timecreated = time();
                 $graderrow = $DB->get_record('assign_graderesponse', ['userid' => $userid, 'assignmentid' => $assignid, 'submissionid' => $submissionid], '*', IGNORE_MISSING);
 
-                if (empty($graderrow)) {
+		if (empty($graderrow)) {
+	            $oldsubmissionid = $DB->get_field('assign_graderesponse', 'submissionid', ['userid' => $userid, 'assignmentid' => $assignid,'isdeleted' => 0]);
+                    if ($oldsubmissionid) {
+                        $data = [
+                            'submissionId' => $oldsubmissionid,
+                            'userID' => $userid
+                        ];
+                        $sql = "UPDATE {assign_graderesponse} SET isdeleted = 1 where submissionid = $oldsubmissionid";
+                        $DB->execute($sql);
+                        $response = execute_curl_deleteapi($data);
+                    }
                     $record->timecreated = $timecreated;  
                     $DB->insert_record('assign_graderesponse', $record);
                 } else {
