@@ -198,7 +198,18 @@ function get_course_custom_field_value($courseid, $fieldshortname) {
 
 function show_ai_grading($cmid, $userid) {
     global $DB;
-    $data = $DB->get_record('assign_graderesponse', array('userid' => $userid, 'cmid' => $cmid));
+    //$data = $DB->get_record('assign_graderesponse', array('userid' => $userid, 'cmid' => $cmid, 'isdeleted' => 0));
+
+
+    $sql = "SELECT * FROM {assign_graderesponse}
+        WHERE userid = :userid AND cmid = :cmid AND isdeleted = 0 AND grade IS NOT NULL AND grade <> ''";
+
+    $params = [
+       'userid' => $userid,
+       'cmid' => $cmid
+    ];
+
+    $data = $DB->get_record_sql($sql, $params);
 
     if (!empty($data)) {
         $status = true;

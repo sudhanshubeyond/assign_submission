@@ -9,7 +9,7 @@ $cmid = required_param('cmid', PARAM_INT);
 $userid = required_param('userid', PARAM_INT);
 
 global $DB;
-$data = $DB->get_record('assign_graderesponse', array('userid' => $userid, 'cmid' => $cmid));
+$data = $DB->get_record('assign_graderesponse', array('userid' => $userid, 'cmid' => $cmid,'isdeleted' => 0));
 $errormessage = ($data->errormessage == '') ? NULL : $data->errormessage;
 if (!empty($data)) {
     switch ($action) {
