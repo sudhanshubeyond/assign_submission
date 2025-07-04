@@ -92,9 +92,8 @@ function submission_event_data($event, $type = 'submitted') {
                     'rubricID' => '',
                     'GradingType' => $gradingmethod,
                     'GradingData' => ($gradingdata) ? json_encode($gradingdata) : '',
-                    'indexingFlag' => false,
-                    'previoussubmissions' => $previoussubmissions,
-                    'courseindexing' => ($courseindexing == 1) ? $courseindexing : 0
+                    'indexingFlag' => ($courseindexing == 1) ? $courseindexing : 0,
+                    'previousSubmissions' => $previoussubmissions,
                 ];
 
                 $endpoint = 'https://genai-woodmontcollege-app.azurewebsites.net/api/StudentGrading/SubmitAssignmentAsync';
