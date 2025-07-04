@@ -1,9 +1,10 @@
 <?php
 
 require_once(__DIR__ . '/../../config.php');
+
 use core_course\customfield\course_handler;
 
-function submission_event_data($event, $type='submitted') {
+function submission_event_data($event, $type = 'submitted') {
     global $DB;
     try {
         // Get basic info
@@ -24,8 +25,8 @@ function submission_event_data($event, $type='submitted') {
             $assign = $DB->get_record('assign', ['id' => $assignid], 'Name, intro, grade');
 
             $submissionid = $event->objectid;
-	    
-	    if ($type == 'submitted') {
+
+            if ($type == 'submitted') {
 
                 // Get online text (if used)
                 $online_text = '';
@@ -39,12 +40,12 @@ function submission_event_data($event, $type='submitted') {
                 // Get uploaded file IDs (if file submission is enabled)
                 $fs = get_file_storage();
                 $files = $fs->get_area_files(
-                    $context->id,
-                    'assignsubmission_file',
-                    'submission_files',
-                    $submissionid,
-                    "itemid, filepath, filename",
-                    false
+                        $context->id,
+                        'assignsubmission_file',
+                        'submission_files',
+                        $submissionid,
+                        "itemid, filepath, filename",
+                        false
                 );
                 $fileids = [];
                 foreach ($files as $file) {
@@ -63,7 +64,7 @@ function submission_event_data($event, $type='submitted') {
 
                     // Use grading manager to access the rubric/guide controller
                     $gradingmanager = get_grading_manager($context, 'mod_assign', 'submissions');
-                    $gradingmethod  = $gradingmanager->get_active_method();
+                    $gradingmethod = $gradingmanager->get_active_method();
                     if ($gradingmanager->get_active_method()) {
                         $controller = $gradingmanager->get_controller($gradingmethod);
                         if ($controller && $controller->is_form_defined()) {
@@ -73,6 +74,10 @@ function submission_event_data($event, $type='submitted') {
                         $gradingmethod = '';
                     }
                 }
+
+                $previoussubmissions = get_previous_submisisons($userid, $assignid);
+                $fieldshortname = 'indexing_required'; // Replace with your field shortname
+                $courseindexing =     get_course_custom_field_value($courseid, $fieldshortname);
 
                 $data = [
                     'submissionID' => $submissionid,
@@ -87,7 +92,9 @@ function submission_event_data($event, $type='submitted') {
                     'rubricID' => '',
                     'GradingType' => $gradingmethod,
                     'GradingData' => ($gradingdata) ? json_encode($gradingdata) : '',
-                    'indexingFlag' => false
+                    'indexingFlag' => false,
+                    'previoussubmissions' => $previoussubmissions,
+                    'courseindexing' => ($courseindexing == 1) ? $courseindexing : 0
                 ];
 
                 $endpoint = 'https://genai-woodmontcollege-app.azurewebsites.net/api/StudentGrading/SubmitAssignmentAsync';
@@ -100,14 +107,14 @@ function submission_event_data($event, $type='submitted') {
                 $record->assignmentid = $assignid;
                 $record->grade = " ";
                 $record->cmid = $cmid;
-		$record->feedbackdesc = '';
-		$record->fileids = $fileIDs;
+                $record->feedbackdesc = '';
+                $record->fileids = $fileIDs;
                 $record->status = ($response->status) ? 1 : 0;
                 $record->timemodified = $timecreated = time();
                 $graderrow = $DB->get_record('assign_graderesponse', ['userid' => $userid, 'assignmentid' => $assignid, 'submissionid' => $submissionid], '*', IGNORE_MISSING);
 
-		if (empty($graderrow)) {
-	            $oldsubmissionid = $DB->get_field('assign_graderesponse', 'submissionid', ['userid' => $userid, 'assignmentid' => $assignid,'isdeleted' => 0]);
+                if (empty($graderrow)) {
+                    $oldsubmissionid = $DB->get_field('assign_graderesponse', 'submissionid', ['userid' => $userid, 'assignmentid' => $assignid, 'isdeleted' => 0]);
                     if ($oldsubmissionid) {
                         $data = [
                             'submissionId' => $oldsubmissionid,
@@ -117,7 +124,7 @@ function submission_event_data($event, $type='submitted') {
                         $DB->execute($sql);
                         $response = execute_curl_deleteapi($data);
                     }
-                    $record->timecreated = $timecreated;  
+                    $record->timecreated = $timecreated;
                     $DB->insert_record('assign_graderesponse', $record);
                 } else {
                     $record->id = $graderrow->id;
@@ -140,45 +147,45 @@ function submission_event_data($event, $type='submitted') {
                     $record->status = ($response->status) ? 1 : 0;
                     $DB->update_record('assign_graderesponse', $record);
                 }
-            } 
-        }  
+            }
+        }
     } catch (Exception $e) {
         // Catch unexpected exceptions
         debugging('Unexpected error: ' . $e->getMessage(), DEBUG_DEVELOPER);
     }
 }
 
-function execute_curl_postapi($data, $endpoint= '') {
+function execute_curl_postapi($data, $endpoint = '') {
     $endpoint = 'https://genai-woodmontcollege-app.azurewebsites.net/api/StudentGrading/SubmitAssignmentAsync';
 
     $headers = get_genapi_headers();
-    
+
     $ch = curl_init($endpoint);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-    
+
     $response = json_decode(curl_exec($ch));
     curl_close($ch);
 
     return $response;
 }
 
-function execute_curl_deleteapi($data, $endpoint= '') {
-    
-    
+function execute_curl_deleteapi($data, $endpoint = '') {
+
+
     $userID = $data['userID'];
     $submissionId = $data['submissionId'];
-    $endpoint = 'https://genai-woodmontcollege-app.azurewebsites.net/api/StudentGrading/DeleteGradingRequest?submissionId='.$submissionId.'&userID='.$userID;
+    $endpoint = 'https://genai-woodmontcollege-app.azurewebsites.net/api/StudentGrading/DeleteGradingRequest?submissionId=' . $submissionId . '&userID=' . $userID;
 
     $headers = get_genapi_headers();
-    
+
     $ch = curl_init($endpoint);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "DELETE");
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-    
+
     $response = json_decode(curl_exec($ch));
     curl_close($ch);
 
@@ -205,8 +212,8 @@ function show_ai_grading($cmid, $userid) {
         WHERE userid = :userid AND cmid = :cmid AND isdeleted = 0 AND grade IS NOT NULL AND grade <> ''";
 
     $params = [
-       'userid' => $userid,
-       'cmid' => $cmid
+        'userid' => $userid,
+        'cmid' => $cmid
     ];
 
     $data = $DB->get_record_sql($sql, $params);
@@ -216,13 +223,13 @@ function show_ai_grading($cmid, $userid) {
     } else {
         $status = false;
     }
-    
+
     return $status;
 }
 
 function get_genapi_headers() {
 
-    $apikey = get_config('local_assign_submission','api_keys');
+    $apikey = get_config('local_assign_submission', 'api_keys');
     $headers = [
         "x-api-key: $apikey",
         "Content-Type: application/json"
@@ -238,7 +245,7 @@ function execute_curl_putapi($courseid) {
     }
 
     $params = ['courseId' => $courseid];
-    $endpoint  = get_config('local_assign_submission', 'update_course_sync_end_point');
+    $endpoint = get_config('local_assign_submission', 'update_course_sync_end_point');
     $url = new moodle_url($endpoint, $params);
 
     $headers = get_genapi_headers();
@@ -263,3 +270,31 @@ function execute_curl_putapi($courseid) {
 
     return $response;
 }
+
+function get_previous_submisisons($userid, $assignid) {
+    global $DB;
+
+    $sql = "SELECT id,submissionid
+        FROM {assign_graderesponse} 
+        WHERE userid = :userid 
+          AND assignmentid = :assignid 
+          AND isdeleted = 1 
+          AND grade IS NOT NULL 
+          AND grade != ''";
+
+    $params = [
+        'userid' => $userid,
+        'assignid' => $assignid,
+    ];
+
+    $previoussubmissionids = $DB->get_records_sql($sql, $params);
+
+    $previoussubmissions = [];
+    foreach ($previoussubmissionids as $previoussubmissionids) {
+        $previoussubmissions[] = $previoussubmissionids->submissionid;
+    }
+
+    $previoussubmissions = implode(',', $previoussubmissions);
+    return $previoussubmissions;
+}
+
