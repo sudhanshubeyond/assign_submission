@@ -10,7 +10,7 @@ function submission_event_data($event, $type = 'submitted') {
         // Get basic info
         $context = $event->get_context(); // context_module
         $courseid = $event->courseid;
-        $userid = $event->userid;
+        $user  = core_user::get_user($event->userid);
 
         $fieldshortname = 'ai_required'; // Replace with your field shortname
         $value = get_course_custom_field_value($courseid, $fieldshortname);
@@ -86,13 +86,14 @@ function submission_event_data($event, $type = 'submitted') {
                     'assignmentDesc' => $assign->intro,
                     'assignmentMaxScore' => $assign->grade,
                     'userAssignentText' => $online_text,
-                    'userID' => $userid,
+                    'userID' => $user->id,
+                    'studentName' => $user->firstname,
                     'courseID' => $courseid,
                     'fileIDs' => $fileIDs,
                     'rubricID' => '',
                     'GradingType' => $gradingmethod,
                     'GradingData' => ($gradingdata) ? json_encode($gradingdata) : '',
-                    'indexingFlag' => ($courseindexing == 1) ? $courseindexing : 0,
+                    'indexingFlag' => ($courseindexing == 1) ? true : false,
                     'previousSubmissions' => $previoussubmissions,
                 ];
 
