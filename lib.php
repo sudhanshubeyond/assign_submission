@@ -10,7 +10,9 @@ function submission_event_data($event, $type = 'submitted') {
         // Get basic info
         $context = $event->get_context(); // context_module
         $courseid = $event->courseid;
-        $user  = core_user::get_user($event->userid);
+        $userid = $event->userid;
+        $user  = core_user::get_user($userid);
+
 
         $fieldshortname = 'ai_required'; // Replace with your field shortname
         $value = get_course_custom_field_value($courseid, $fieldshortname);
@@ -223,6 +225,22 @@ function show_ai_grading($cmid, $userid) {
     } else {
         $status = false;
     }
+
+    return $status;
+}
+
+function ai_grade_exist($cmid, $userid) {
+    global $DB;
+
+    $sql = "SELECT * FROM {assign_graderesponse}
+        WHERE userid = :userid AND cmid = :cmid AND isdeleted = 0 and status = 1";
+
+    $params = [
+        'userid' => $userid,
+        'cmid' => $cmid
+    ];
+
+    $status = $DB->record_exists_sql($sql, $params);
 
     return $status;
 }
