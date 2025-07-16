@@ -33,3 +33,5 @@ $string['create_end_points'] = 'Create end points';
 $string['delete_end_points'] = 'Delete end points';
 $string['update_course_sync_end_point'] = 'Update sync end point';
 $string['api_keys'] = 'API keys';
+$string['ai_grading'] = 'AI Grading';
+$string['ai_work'] = 'AI at work';

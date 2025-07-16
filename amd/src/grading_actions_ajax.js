@@ -3,7 +3,8 @@ define([
     "core/ajax",
     "core/templates",
     "core/notification",
-], function ($, ajax, templates, notification) {
+    "core/str",
+], function ($, ajax, templates, notification,str) {
     return /** @alias module:block_programs/programs */ {
         /**
          *
@@ -11,19 +12,44 @@ define([
          */
         init: function () {
             var url = window.location.href;
-            // Add a click handler to the button
             var cmid = getURLParameter("id", url);
             var userid = getURLParameter("userid", url);
+
+            setInterval(function () {
+                if ($('#id_fill_ai_grade').prop('disabled')) {
+                    $.ajax({
+                        url: M.cfg.wwwroot + '/local/assign_submission/ajax.php',
+                        method: 'POST',
+                        data: {
+                            action: 'getgrades',
+                            cmid: cmid,
+                            userid: userid,
+                            sesskey: M.cfg.sesskey
+                        },
+                        success: function (data) {
+                            try {
+                                if (data.status == 200) {
+                                    $('#id_fill_ai_grade')
+                                            .prop('disabled', false) // Enable the button
+                                            .attr('title', '')       // Remove the tooltip
+                                            .html('AI Grading');
+                                }
+                            } catch (err) {
+                                console.log('There is some issue please try again later');
+                            }
+                        },
+                        error: function (err) {
+                            console.log('AJAX error: ' + err.statusText);
+                        }
+                    });
+                }
+
+            }, 5000);
 
             $(document).on(
                     "click",
                     "#id_fill_ai_grade",
                     delay(function (e) {
-
-
-                        var programid = $(this).attr("data-programid");
-                        var id = $(this).attr("data-id");
-                        var cid = $(this).attr("cmid");
 
                         $.ajax({
                             url: M.cfg.wwwroot + '/local/assign_submission/ajax.php',

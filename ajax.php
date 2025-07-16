@@ -9,7 +9,15 @@ $cmid = required_param('cmid', PARAM_INT);
 $userid = required_param('userid', PARAM_INT);
 
 global $DB;
-$data = $DB->get_record('assign_graderesponse', array('userid' => $userid, 'cmid' => $cmid,'isdeleted' => 0));
+$sql = "SELECT * FROM {assign_graderesponse}
+        WHERE userid = :userid AND cmid = :cmid AND isdeleted = 0 AND status = 1 AND grade IS NOT NULL AND grade != ''";
+
+$params = [
+    'userid' => $userid,
+    'cmid' => $cmid,
+];
+
+$data = $DB->get_record_sql($sql, $params);
 $errormessage = ($data->errormessage == '') ? NULL : $data->errormessage;
 if (!empty($data)) {
     switch ($action) {
