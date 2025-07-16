@@ -29,10 +29,12 @@ define([
                         success: function (data) {
                             try {
                                 if (data.status == 200) {
-                                    $('#id_fill_ai_grade')
-                                            .prop('disabled', false) // Enable the button
-                                            .attr('title', '')       // Remove the tooltip
-                                            .html('AI Grading');
+                                    if (data.grade != ' ' || data.errormessage != null) {
+                                        $('#id_fill_ai_grade')
+                                                .prop('disabled', false) // Enable the button
+                                                .attr('title', '')       // Remove the tooltip
+                                                .html('AI Grading');
+                                    }
                                 }
                             } catch (err) {
                                 console.log('There is some issue please try again later');

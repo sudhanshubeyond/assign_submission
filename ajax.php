@@ -10,7 +10,7 @@ $userid = required_param('userid', PARAM_INT);
 
 global $DB;
 $sql = "SELECT * FROM {assign_graderesponse}
-        WHERE userid = :userid AND cmid = :cmid AND isdeleted = 0 AND status = 1 AND grade IS NOT NULL AND grade != ''";
+        WHERE userid = :userid AND cmid = :cmid AND isdeleted = 0 AND status = 1";
 
 $params = [
     'userid' => $userid,
